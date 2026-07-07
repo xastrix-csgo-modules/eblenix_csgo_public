@@ -588,6 +588,7 @@
     <ClInclude Include="http.h">
       <Filter>helpers\http</Filter>
     </ClInclude>
+    <ClInclude Include="common.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="csgo">

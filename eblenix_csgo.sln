@@ -8,9 +8,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "eblenix_injector", "src\injector\eblenix_injector.vcxproj", "{9CFAA9FF-15A1-441B-ABAE-E111D1DA856C}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{9B498A65-C6AD-44F5-A232-332E67D40DF5}"
-	ProjectSection(SolutionItems) = preProject
-		common.h = common.h
-	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "lua_samples", "lua_samples", "{2EF3B598-CA59-4AE1-A842-6DFEFF167198}"
 	ProjectSection(SolutionItems) = preProject

@@ -67,28 +67,13 @@ namespace util
 		return std::string{ path } + "\\";
 	}
 
-	inline auto random_string(int len, const std::string& chars = "qwertyuiopasdfghjklzxcvbnm") -> std::string
-	{
-		std::string ss{};
-
-		auto dictonary_length = chars.length() - 1;
-		ss.reserve(len);
-
-		for (unsigned int i = 0; i < len; i++) {
-			unsigned int random_index = rand() % dictonary_length;
-			ss += chars.at(random_index);
-		}
-
-		return ss;
-	}
-
 	template <typename T>
 	inline auto get_export(const char* mod_name, const char* function_name) -> T
 	{
 		return reinterpret_cast<T>(GetProcAddress(GetModuleHandleA(mod_name), function_name));
 	}
 
-	inline auto inject(const DWORD pid, const std::string& dll_name) -> bool
+	inline auto inject(const DWORD pid, const std::string& dll_name) -> int
 	{
 		CLIENT_ID         cid{};
 		NTSTATUS          status{};
@@ -101,8 +86,10 @@ namespace util
 		std::string dll_path = get_current_path() + dll_name;
 		SIZE_T dll_size      = dll_path.size() + 1;
 
-		if (!file_exists(dll_path))
-			return false;
+		if (!file_exists(dll_path)) {
+			printf("[-] dll not found: %s\n", dll_path.c_str());
+			return 1;
+		}
 
 		InitializeObjectAttributes(&oa, NULL, 0, NULL, NULL);
 
@@ -114,16 +101,20 @@ namespace util
 			PROCESS_VM_OPERATION  | PROCESS_VM_WRITE | PROCESS_VM_READ,
 			&oa, &cid);
 
-		if (status != STATUS_SUCCESS)
-			return false;
+		if (status != STATUS_SUCCESS) {
+			printf("[-] NtOpenProcess failed with status: 0x%X\n", status);
+			return 1;
+		}
 
 		status                         = get_export<_NtAllocateVirtualMemory>("ntdll.dll", "NtAllocateVirtualMemory")(
 			proc, &base_addr, 0,
 			&dll_size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE
 		);
 
-		if (status != STATUS_SUCCESS)
-			return false;
+		if (status != STATUS_SUCCESS) {
+			printf("[-] NtAllocateVirtualMemory failed with status: 0x%X\n", status);
+			return 1;
+		}
 
 		status                         = get_export<_NtWriteVirtualMemory>("ntdll.dll", "NtWriteVirtualMemory")(
 			proc, base_addr,
@@ -131,26 +122,32 @@ namespace util
 			(ULONG)dll_size, &bytes_written
 		);
 
-		if (status != STATUS_SUCCESS)
-			return false;
+		if (status != STATUS_SUCCESS) {
+			printf("[-] NtWriteVirtualMemory failed with status: 0x%X\n", status);
+			return 1;
+		}
 
-		const auto load_library        = get_export<_LoadLibraryA>("kernel32.dll", "LoadLibraryA");
+		const auto ll                  = get_export<_LoadLibraryA>("kernel32.dll", "LoadLibraryA");
 
-		if (!load_library)
-			return false;
+		if (!ll) {
+			printf("[-] failed to get LoadLibraryA export from kernel32.dll\n");
+			return 1;
+		}
 
 		status                         = get_export<_NtCreateThreadEx>("ntdll.dll", "NtCreateThreadEx")(
 			&thread, 0x1fffff, 0, proc,
-			load_library, base_addr, FALSE,
+			ll, base_addr, FALSE,
 			0, 0, 0, 0
 		);
 
-		if (status != STATUS_SUCCESS)
-			return false;
+		if (status != STATUS_SUCCESS) {
+			printf("[-] NtCreateThreadEx failed with status: 0x%X\n", status);
+			return 1;
+		}
 
 		CloseHandle(thread);
 		CloseHandle(proc);
 
-		return true;
+		return 0;
 	}
 }

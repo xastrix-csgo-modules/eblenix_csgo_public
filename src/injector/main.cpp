@@ -1,14 +1,16 @@
-#include "interface.h"
+#include "util.h"
 
-int __stdcall WinMain(HINSTANCE I, HINSTANCE, LPSTR, int32_t)
+int main(int argc, char* argv[])
 {
-	srand((unsigned)time(0));
+	std::string process_name = (argc > 1) ? argv[1] : "csgo.exe";
+	std::string dll_name = (argc > 2) ? argv[2] : "eblenix_csgo.dll";
 
-	if (g_interface.init(I) == INTERFACE_FAILED)
-		return EXIT_FAILURE;
+	DWORD pid = util::get_proc_id(process_name.c_str());
 
-	g_interface.loop();
-	g_interface.undo();
+	if (!pid) {
+		printf("[-] game is not running... (%s > %s)\n", dll_name.c_str(), process_name.c_str());
+		return 1;
+	}
 
-	return EXIT_SUCCESS;
+	return util::inject(pid, dll_name);
 }
